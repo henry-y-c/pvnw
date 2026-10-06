@@ -1,0 +1,32 @@
+# Credentials, local overrides and private payloads (inspect before staging anyway)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.secret
+*credentials*.json
+*.token
+
+# Python and other local caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+
+# Build/editor/OS artifacts
+build/
+dist/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

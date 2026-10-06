@@ -1,0 +1,17 @@
+name: Validate portable Skill source
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-source-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check offline repository invariants
+        run: python3 -m unittest discover -s tests -v
