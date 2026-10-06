@@ -96,11 +96,37 @@ class SourceContract(unittest.TestCase):
         self.assertIn("原问题", entry)
         self.assertIn("未验证", entry)
         cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
-        for label in "ABCDEFGH":
+        for label in "ABCDEFGHIJKLMNOP":
             with self.subTest(case=label):
                 self.assertIn(f"| {label}.", cases)
         for signal in ("无写授权", "唯一获授权", "必须不写", "未验证默认启动"):
             self.assertIn(signal, cases)
+
+    def test_three_view_written_contract_not_runtime_behavior(self):
+        """Written guidance and synthetic examples only; not model compliance."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
+        modeling = (BUNDLE / "references" / "note-modeling.md").read_text(encoding="utf-8")
+        permissions = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        for text in (entry, routes, modeling):
+            with self.subTest(guide=text[:35]):
+                for level in ("微观", "中观", "宏观"):
+                    self.assertIn(level, text)
+        self.assertIn("不是每项任务强制创建三份文件", entry)
+        self.assertIn("每次过程篇变更", routes)
+        self.assertIn("进展或入口", routes)
+        self.assertIn("状态／关系／导航实变", routes)
+        self.assertIn("不强制先造 micro 文件", routes)
+        self.assertIn("分别核查", routes)
+        self.assertIn("不同于", routes)  # terminated exploration vs invalidated freeze
+        self.assertIn("获授权的既有材料", modeling)
+        self.assertIn("授权改其中一层不连带", permissions)
+        for label in "IJKLMNOP":
+            with self.subTest(scenario=label):
+                self.assertIn(f"| {label}.", cases)
+        self.assertIn("根地图未获写授权", cases)
+        self.assertIn("回收号", cases)
 
     def test_validation_rejects_bad_metadata_and_link(self):
         with self.assertRaises(ValueError):
