@@ -1,6 +1,7 @@
 """Offline source-contract checks. Never an agent/host behavior test."""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import posixpath
 import re
 import unittest
 
@@ -127,6 +128,77 @@ class SourceContract(unittest.TestCase):
                 self.assertIn(f"| {label}.", cases)
         self.assertIn("根地图未获写授权", cases)
         self.assertIn("回收号", cases)
+
+    def test_authorized_build_reorganization_written_contract(self):
+        """Policy text and synthetic cases only; no agent execution occurs."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
+        gates = (BUNDLE / "references" / "decision-gates.md").read_text(encoding="utf-8")
+        modeling = (BUNDLE / "references" / "note-modeling.md").read_text(encoding="utf-8")
+        permission = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
+        inbox = (BUNDLE / "references" / "safe-inbox.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        for phrase in ("建立或重组", "重构", "逐级", "不自动写", "人的冻结", "相对链接"):
+            with self.subTest(entry=phrase):
+                self.assertIn(phrase, entry)
+        for phrase in ("空白建系", "旧库重构", "先只读", "旧路径／入口→拟建", "回滚", "评估节点", "不自动冻结", "普通 Markdown", ".obsidian"):
+            with self.subTest(routes=phrase):
+                self.assertIn(phrase, routes)
+        self.assertIn("明确要求且授权实际建系时应执行", gates)
+        for phrase in ("宏观", "中观", "微观", "原始安全条目", "来源标识", "纠偏前后", "<br>", "反向返回"):
+            with self.subTest(modeling=phrase):
+                self.assertIn(phrase, modeling)
+        for phrase in ("备份", "旧入口", "拟提交快照", "被明确批准的批次", "凭据"):
+            with self.subTest(permission=phrase):
+                self.assertIn(phrase, permission)
+        self.assertIn("不是旧库重构的备份／搬移暂存区", inbox)
+        for label in "QRSTUVWXYZ":
+            with self.subTest(scenario=label):
+                self.assertIn(f"| {label}.", cases)
+        for phrase in ("只授权读取", "纯 Markdown", "坏锚", "密钥", "拟提交快照"):
+            self.assertIn(phrase, cases)
+
+    def test_synthetic_navigation_rejects_incomplete_snapshots(self):
+        """Pure in-memory fixture graph; not agent output, Git index or host behavior."""
+        overview = "0-项目总览.md"
+        summary = "1-恢复演练/1-0-当前判断.md"
+        process = "1-恢复演练/1-1-演练证据.md"
+        files = {
+            overview: "# project\n[当前目标](1-恢复演练/1-0-当前判断.md#checkpoint)",
+            summary: "# checkpoint\n[根](../0-项目总览.md#project) [演练](1-1-演练证据.md#observation)",
+            process: "# observation\n[目标](1-0-当前判断.md#checkpoint)\n来源：合成演练 v1\n观察：隔离恢复失败",
+        }
+
+        def flaws(snapshot):
+            issues = []
+            edges = set()
+            for source, text in snapshot.items():
+                for target in LINK.findall(text):
+                    path, _, anchor = target.partition("#")
+                    if "://" in path:
+                        continue
+                    normalized = posixpath.normpath(str(PurePosixPath(source).parent / path)) if path else source
+                    edges.add((source, normalized))
+                    if normalized not in snapshot:
+                        issues.append("missing path")
+                    elif anchor and f"# {anchor}" not in snapshot[normalized].splitlines():
+                        issues.append("broken anchor")
+            for edge in ((overview, summary), (summary, overview), (summary, process), (process, summary)):
+                if edge not in edges:
+                    issues.append("missing reciprocal route")
+            if process not in snapshot or not all(word in snapshot[process] for word in ("来源：", "观察：")):
+                issues.append("missing evidence")
+            return set(issues)
+
+        self.assertEqual(flaws(files), set())
+        self.assertEqual(flaws({overview: files[overview], summary: files[summary]}),
+                         {"missing path", "missing reciprocal route", "missing evidence"})
+        self.assertEqual(flaws({**files, summary: files[summary].replace("#observation", "#missing")}),
+                         {"broken anchor"})
+        self.assertEqual(flaws({**files, process: files[process].replace("[目标](1-0-当前判断.md#checkpoint)", "无反向入口")}),
+                         {"missing reciprocal route"})
+        self.assertEqual(flaws({**files, process: "# observation\n[目标](1-0-当前判断.md#checkpoint)"}),
+                         {"missing evidence"})
 
     def test_validation_rejects_bad_metadata_and_link(self):
         with self.assertRaises(ValueError):
