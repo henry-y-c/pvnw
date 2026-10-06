@@ -10,6 +10,7 @@ BUNDLE = ROOT / "pvnw"
 REFERENCES = (
     "decision-gates.md",
     "routes-and-lifecycle.md",
+    "project-system.md",
     "note-modeling.md",
     "safe-inbox.md",
     "provenance-and-permissions.md",
@@ -57,7 +58,7 @@ def local_links(source, text):
 
 
 class SourceContract(unittest.TestCase):
-    def test_seven_file_bundle(self):
+    def test_eight_file_bundle(self):
         self.assertEqual(
             {path.name for path in BUNDLE.joinpath("references").iterdir()},
             set(REFERENCES),
@@ -157,6 +158,93 @@ class SourceContract(unittest.TestCase):
                 self.assertIn(f"| {label}.", cases)
         for phrase in ("只授权读取", "纯 Markdown", "坏锚", "密钥", "拟提交快照"):
             self.assertIn(phrase, cases)
+
+    def test_project_management_written_contract_not_runtime_behavior(self):
+        """Checks the published written contract, not agent adherence or approvals."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        guide = (BUNDLE / "references" / "project-system.md").read_text(encoding="utf-8")
+        routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        self.assertIn("project-system.md", entry)
+        self.assertIn("有权者选定的唯一授权位置", entry)
+        self.assertIn("WBS 工作分解", entry)
+        for phrase in (
+            "0-项目总览.md", "N-0", "N-1", "N.W1", "N.W1.1", "N-WBS.md",
+            "未编号候选", "不回收", "已选普通 Markdown", "Unicode", "碰撞",
+            "旧→新映射", "工作项完成不等于节点判据通过", "每次过程篇更新",
+            "同一逻辑变更", "人", "逆操作", "拟提交快照",
+        ):
+            with self.subTest(policy=phrase):
+                self.assertIn(phrase, guide)
+        self.assertIn("项目级目录／命名", routes)
+        for label in ("AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ"):
+            with self.subTest(scenario=label):
+                self.assertIn(f"| {label}.", cases)
+        self.assertIn("from six to seven references", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        self.assertIn("七份", (ROOT / "README.md").read_text(encoding="utf-8"))
+
+    def test_synthetic_wbs_links_and_gates_reject_incomplete_snapshot(self):
+        """An in-memory project, not real files, agent output, or host execution."""
+        root = "0-项目总览.md"
+        summary = "1-恢复演练/1-0-当前判断.md"
+        process = "1-恢复演练/1-1-验证失败.md"
+        baseline = {
+            root: "# 项目\n[目标](1-恢复演练/1-0-当前判断.md)",
+            summary: "# 当前\n[项目](../0-项目总览.md)\n"
+                     "节点：隔离恢复可复现；判据：隔离演练成功；结果：未通过；人的冻结：无\n"
+                     "| ID | 交付物 | 依赖 | 状态 | 证据或缺口 |\n"
+                     "| --- | --- | --- | --- | --- |\n"
+                     "| 1.W1 | 样本校验 | 已获权样本 | 进行中 | [失败证据](1-1-验证失败.md) |\n"
+                     "| 1.W2 | 隔离恢复 | 1.W1 | 阻塞 | 缺：隔离观察 |",
+            process: "# 失败\n关联：1.W1、1.W2\n来源：合成演练\n观察：恢复失败\n"
+                     "[返回目标](1-0-当前判断.md)",
+        }
+
+        def inspect(snapshot):
+            problems = set()
+            for source, text in snapshot.items():
+                for target in LINK.findall(text):
+                    path = posixpath.normpath(str(PurePosixPath(source).parent / target.split("#", 1)[0]))
+                    if path not in snapshot:
+                        problems.add("missing link")
+            rows = {}
+            if summary in snapshot:
+                for line in snapshot[summary].splitlines():
+                    if re.match(r"^\| 1\.W\d+ \|", line):
+                        cells = [cell.strip() for cell in line.strip("|").split("|")]
+                        if len(cells) == 5:
+                            rows[cells[0]] = cells[1:]
+            if set(rows) != {"1.W1", "1.W2"}:
+                problems.add("missing work items")
+            else:
+                if not all(rows[id_][0] and rows[id_][2] and rows[id_][3] for id_ in rows):
+                    problems.add("missing deliverable/status/evidence")
+                if rows["1.W2"][1] != "1.W1" or rows["1.W1"][1] != "已获权样本":
+                    problems.add("missing dependency")
+                if rows["1.W1"][3] != "[失败证据](1-1-验证失败.md)" or not rows["1.W2"][3].startswith("缺："):
+                    problems.add("missing evidence or explicit gap")
+            if process not in snapshot or not all(key in snapshot[process] for key in ("来源：", "观察：", "1.W1", "1.W2")):
+                problems.add("missing work evidence")
+            if summary in snapshot and "[失败证据](1-1-验证失败.md)" not in snapshot[summary]:
+                problems.add("missing forward route")
+            if process in snapshot and "[返回目标](1-0-当前判断.md)" not in snapshot[process]:
+                problems.add("missing return route")
+            if summary in snapshot and not all(
+                phrase in snapshot[summary]
+                for phrase in ("节点：隔离恢复可复现", "判据：隔离演练成功", "结果：未通过", "人的冻结：无")
+            ):
+                problems.add("checkpoint conflated with task completion")
+            return problems
+
+        self.assertEqual(inspect(baseline), set())
+        self.assertIn("missing link", inspect({root: baseline[root], summary: baseline[summary]}))
+        self.assertIn("missing work items", inspect({**baseline, summary: baseline[summary].replace("| 1.W2 |", "| work done |")}))
+        self.assertIn("missing dependency", inspect({**baseline, summary: baseline[summary].replace("隔离恢复 | 1.W1", "隔离恢复 | 未说明")}))
+        self.assertIn("missing deliverable/status/evidence", inspect({**baseline, summary: baseline[summary].replace("样本校验 | 已获权样本 | 进行中", " | 已获权样本 | 进行中")}))
+        self.assertIn("missing evidence or explicit gap", inspect({**baseline, summary: baseline[summary].replace("缺：隔离观察", "完成")}))
+        self.assertIn("missing work evidence", inspect({**baseline, process: baseline[process].replace("来源：合成演练", "无来源")}))
+        self.assertIn("missing return route", inspect({**baseline, process: baseline[process].replace("[返回目标](1-0-当前判断.md)", "无回链")}))
+        self.assertIn("checkpoint conflated with task completion", inspect({**baseline, summary: baseline[summary].replace("结果：未通过", "结果：任务完成即通过")}))
 
     def test_synthetic_navigation_rejects_incomplete_snapshots(self):
         """Pure in-memory fixture graph; not agent output, Git index or host behavior."""

@@ -1,6 +1,6 @@
 # PVNW repository instructions for contributing agents
 
-This file governs work **in this repository**. It is not the runtime Skill entry, not an installation recipe, and not permission to change a user's files. Runtime instructions start at `pvnw/SKILL.md`; six on-demand references live at `pvnw/references/`.
+This file governs work **in this repository**. It is not the runtime Skill entry, not an installation recipe, and not permission to change a user's files. Runtime instructions start at `pvnw/SKILL.md`; seven on-demand references live at `pvnw/references/` as of v0.4.0. The new `project-system.md` is an additive, opt-in project-management contract; the six previous reference paths and four task routes remain unchanged.
 
 ## Authority and scope
 
@@ -10,7 +10,7 @@ This file governs work **in this repository**. It is not the runtime Skill entry
 
 ## Editing boundary
 
-- Maintain `pvnw/SKILL.md` as a concise entry point. It must name `pvnw`, describe *when* to use the skill and link to the six references with relative paths. Do not merge all references into the entry or add a seventh reference without explicitly documenting the compatibility decision.
+- Maintain `pvnw/SKILL.md` as a concise entry point. It must name `pvnw`, describe *when* to use the skill and link to all seven references with relative paths. v0.4.0 explicitly adds `project-system.md` for authorized naming, WBS and lifecycle work without changing the other six paths or making WBS mandatory. Keep the entry short; future reference-count or behavior changes require a documented compatibility/migration decision.
 - Preserve critical distinctions: every-task **judgment** versus not-every-task **writing**; first-time no authorized location versus unique authorized target; current-task default opt-out versus unsupported persistent opt-out; planning an inbox versus creating one; human-confirmed freeze versus AI proposal; recorded source versus actual host test.
 - Connect each suggestion, model and action to the user's original question and observable exit. Preserve corrections and attribution; do not retroactively rewrite a human decision as an agent design choice. Treat micro/meso/macro as reading and maintenance roles, not mandatory directories for every task or a fifth task route. For an explicit authorized build/reorganization request, implement and verify the complete macro navigation → meso milestone evolution → micro evidence chain (or honestly report missing evidence/permission); each layer's writes require independent authorization.
 - Never add real conversations, credentials, private file paths, personal IDs, or sensitive summaries to source, fixtures, issues, commits, or releases. `.gitignore` is only a guardrail; inspect actual staged content and history before publishing.
