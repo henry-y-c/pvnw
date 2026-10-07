@@ -5,7 +5,10 @@
 
 ## [Unreleased]
 
-1. Host installation, default activation, renderer behavior and real-task quality require separate observation; no such claims have been verified.
+1. Defined a permission-gated local Git closeout at complete WBS progress, milestone movement/reassessment, and task-batch boundaries; no per-line commits, no implicit write-to-commit permission, no automatic push, and explicit task prohibitions still prevail.
+2. Normalized Chinese bold-label punctuation outside emphasis across the portable bundle and added a source check for risky emphasis boundaries. New authorized notes should receive a Markdown check and, where possible, a target-reader spot check; existing user documents are not migrated.
+3. Clarified existing-work-package continuation: check newly verified evidence before classifying a question as throwaway; with explicit scoped continuing maintenance permission, append to the original process and sync the necessary summary even when the milestone conclusion is unchanged. One-time bootstrap permission does not imply continuing write access.
+4. Offline synthetic checks cover written commit gates, risky bold syntax and continuation boundaries, not real agent/host execution. Host installation, default activation, renderer behavior and real-task quality require separate observation; no such claims have been verified.
 
 ## [0.5.0] - 2026-10-07
 

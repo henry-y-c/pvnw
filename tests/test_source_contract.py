@@ -28,6 +28,20 @@ LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 FRONTMATTER = re.compile(r"\A---\n(?P<fields>.*?)\n---\n", re.DOTALL)
 
 
+def unsafe_bold_lines(text):
+    """Flag risky source syntax; not a Markdown parser or host-rendering test."""
+    text = re.sub(r"(?ms)^\s*```.*?^\s*```[^\n]*$", "", text)
+    text = re.sub(r"`+[^`\n]*`+", "", text)
+    problems = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if len(re.findall(r"(?<!\\)\*\*", line)) % 2:
+            problems.append((number, "unpaired double stars"))
+        for match in re.finditer(r"(?<!\\)\*\*([^*\n]+)\*\*", line):
+            if match.group(1)[-1] in "：，。；！？" and match.end() < len(line) and not line[match.end()].isspace():
+                problems.append((number, "punctuation inside bold next to prose"))
+    return problems
+
+
 def frontmatter(text):
     match = FRONTMATTER.match(text)
     if not match:
@@ -92,6 +106,66 @@ class SourceContract(unittest.TestCase):
                 self.assertNotIn("/home/", text)
                 self.assertNotIn("-----BEGIN " + "PRIVATE KEY-----", text)
                 local_links(source, text)
+
+    def test_bold_source_boundary_not_renderer(self):
+        """Catch known risky syntax in source, without claiming host compatibility."""
+        self.assertEqual(unsafe_bold_lines("1. **标签**：正文\n1. `**标签：**正文`\n```md\n1. **标签：**正文\n```"), [])
+        self.assertEqual(unsafe_bold_lines("1. **标签：**正文\n2. **未闭合\n3. **一句。**后续"), [
+            (1, "punctuation inside bold next to prose"),
+            (2, "unpaired double stars"),
+            (3, "punctuation inside bold next to prose"),
+        ])
+        for source in DOCS:
+            with self.subTest(source=source.name):
+                self.assertEqual(unsafe_bold_lines(source.read_text(encoding="utf-8")), [])
+
+    def test_git_closeout_written_contract_not_host_behavior(self):
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        permissions = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
+        note = (BUNDLE / "references" / "note-modeling.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        for phrase in ("WBS 状态", "里程碑节点推进", "无本地提交授权就请人确认", "明确禁止 commit 才不提交", "仅禁止 push 不挡获权本地 commit"):
+            self.assertIn(phrase, entry)
+        for phrase in ("工作包完成不等于节点通过", "不逐行／逐文件提交", "已有暂存", "拟提交快照", "任务结束", "当前任务明确“不提交”", "仅明确“不推送”", "不替人清空暂存"):
+            self.assertIn(phrase, permissions)
+        self.assertIn("`**标签**：正文`", note)
+        self.assertIn("目标阅读器", note)
+        for label in ("AM", "AN", "AO", "AP", "AQ", "AR", "AS"):
+            self.assertIn(f"| {label} |", cases)
+
+    def test_existing_topic_continuation_written_contract_not_host_behavior(self):
+        """Source wording and in-memory cases; not real model authorization or writes."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        gates = (BUNDLE / "references" / "decision-gates.md").read_text(encoding="utf-8")
+        routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
+        permissions = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        for phrase in ("先核已有专题的增量", "里程碑状态未变", "持续维护权", "一次建系同意不自动延续"):
+            self.assertIn(phrase, entry)
+        for phrase in ("助手在回答问题时自己验证", "状态不变也可有进展", "仅因提到专题名不造记录"):
+            self.assertIn(phrase, gates)
+        for phrase in ("里程碑结论不变", "现有工作包篇", "进展／入口"):
+            self.assertIn(phrase, routes)
+        for phrase in ("旧会话助手的自称", "跨会话宿主未呈现旧决定", "一次性建系许可"):
+            self.assertIn(phrase, permissions)
+        for label in ("AT", "AU", "AV", "AW"):
+            self.assertIn(f"| {label} |", cases)
+
+        def expected_route(*, existing, new_evidence, standing_write, current_opt_out):
+            if current_opt_out or not new_evidence:
+                return "answer only"
+            if existing and standing_write:
+                return "answer + append process + sync summary"
+            return "answer + ask for scoped write permission"
+
+        self.assertEqual(expected_route(existing=True, new_evidence=True, standing_write=True, current_opt_out=False),
+                         "answer + append process + sync summary")
+        self.assertEqual(expected_route(existing=True, new_evidence=True, standing_write=False, current_opt_out=False),
+                         "answer + ask for scoped write permission")
+        self.assertEqual(expected_route(existing=True, new_evidence=False, standing_write=True, current_opt_out=False),
+                         "answer only")
+        self.assertEqual(expected_route(existing=True, new_evidence=True, standing_write=True, current_opt_out=True),
+                         "answer only")
 
     def test_static_safety_and_synthetic_cases(self):
         """Assertions on written policy/fixtures, NOT proof of model compliance."""
@@ -193,17 +267,17 @@ class SourceContract(unittest.TestCase):
         first = "1_恢复演练/1.1_样本校验.md"
         second = "1_恢复演练/1.2_隔离恢复.md"
         baseline = {
-            root: "# 项目\n1. **目标：**[恢复演练](1_恢复演练/1.0_当前判断.md)",
-            summary: "# 当前\n1. **根：**[项目](../0_项目总览.md)\n"
-                     "2. **节点：**隔离恢复可复现；判据：隔离演练成功；结果：未通过；人的冻结：无\n"
-                     "3. **工作包：**[1.1 样本校验](1.1_样本校验.md)，依赖已获权样本；"
+            root: "# 项目\n1. **目标**：[恢复演练](1_恢复演练/1.0_当前判断.md)",
+            summary: "# 当前\n1. **根**：[项目](../0_项目总览.md)\n"
+                     "2. **节点**：隔离恢复可复现；判据：隔离演练成功；结果：未通过；人的冻结：无\n"
+                     "3. **工作包**：[1.1 样本校验](1.1_样本校验.md)，依赖已获权样本；"
                      "[1.2 隔离恢复](1.2_隔离恢复.md)，依赖 1.1，缺：隔离观察",
-            first: "# 1.1 样本校验\n1. **目标：**校验样本；[返回目标](1.0_当前判断.md)\n"
-                   "    1. **来源：**合成演练 v1。\n    2. **计划：**比对校验和。\n"
-                   "    3. **观察：**校验失败。\n    4. **纠偏：**待复验。",
-            second: "# 1.2 隔离恢复\n1. **目标：**隔离恢复；依赖 1.1；"
+            first: "# 1.1 样本校验\n1. **目标**：校验样本；[返回目标](1.0_当前判断.md)\n"
+                   "    1. **来源**：合成演练 v1。\n    2. **计划**：比对校验和。\n"
+                   "    3. **观察**：校验失败。\n    4. **纠偏**：待复验。",
+            second: "# 1.2 隔离恢复\n1. **目标**：隔离恢复；依赖 1.1；"
                     "[返回目标](1.0_当前判断.md)\n"
-                    "    1. **计划：**等待样本校验。\n    2. **未验证：**尚无隔离观察。",
+                    "    1. **计划**：等待样本校验。\n    2. **未验证**：尚无隔离观察。",
         }
 
         def inspect(snapshot):
@@ -218,7 +292,7 @@ class SourceContract(unittest.TestCase):
             for path, id_ in ((first, "1.1"), (second, "1.2")):
                 text = snapshot.get(path, "")
                 if not text.startswith(f"# {id_} ") or not all(
-                    re.search(r"^    \d+\. \*\*" + re.escape(field) + r"：", text, re.MULTILINE)
+                    re.search(r"^    \d+\. \*\*" + re.escape(field) + r"\*\*：", text, re.MULTILINE)
                     for field in (("来源", "计划", "观察", "纠偏") if path == first else ("计划", "未验证"))
                 ):
                     problems.add("missing ordered execution history")
@@ -228,7 +302,7 @@ class SourceContract(unittest.TestCase):
                 problems.add("missing dependency or gap")
             if summary in snapshot and not all(
                 phrase in snapshot[summary]
-                for phrase in ("**节点：**隔离恢复可复现", "判据：隔离演练成功", "结果：未通过", "人的冻结：无")
+                for phrase in ("**节点**：隔离恢复可复现", "判据：隔离演练成功", "结果：未通过", "人的冻结：无")
             ):
                 problems.add("checkpoint conflated with task completion")
             return problems
@@ -237,7 +311,7 @@ class SourceContract(unittest.TestCase):
         self.assertIn("missing link", inspect({root: baseline[root], summary: baseline[summary]}))
         self.assertIn("missing work items", inspect({**baseline, summary: baseline[summary].replace("[1.2 ", "[X ")}))
         self.assertIn("missing dependency or gap", inspect({**baseline, summary: baseline[summary].replace("缺：隔离观察", "完成")}))
-        self.assertIn("missing ordered execution history", inspect({**baseline, first: baseline[first].replace("    3. **观察：", "观察：")}))
+        self.assertIn("missing ordered execution history", inspect({**baseline, first: baseline[first].replace("    3. **观察**：", "观察：")}))
         self.assertIn("missing return route", inspect({**baseline, second: baseline[second].replace("[返回目标](1.0_当前判断.md)", "无回链")}))
         self.assertIn("checkpoint conflated with task completion", inspect({**baseline, summary: baseline[summary].replace("结果：未通过", "结果：任务完成即通过")}))
 
@@ -276,9 +350,9 @@ class SourceContract(unittest.TestCase):
         summary = "1_恢复演练/1.0_当前判断.md"
         process = "1_恢复演练/1.1_隔离恢复.md"
         files = {
-            overview: "# project\n1. **目标：**[当前目标](1_恢复演练/1.0_当前判断.md#checkpoint)",
-            summary: "# checkpoint\n1. **根：**[根](../0_项目总览.md#project) [演练](1.1_隔离恢复.md#observation)",
-            process: "# observation\n1. **目标：**[目标](1.0_当前判断.md#checkpoint)\n来源：合成演练 v1\n观察：隔离恢复失败",
+            overview: "# project\n1. **目标**：[当前目标](1_恢复演练/1.0_当前判断.md#checkpoint)",
+            summary: "# checkpoint\n1. **根**：[根](../0_项目总览.md#project) [演练](1.1_隔离恢复.md#observation)",
+            process: "# observation\n1. **目标**：[目标](1.0_当前判断.md#checkpoint)\n来源：合成演练 v1\n观察：隔离恢复失败",
         }
 
         def flaws(snapshot):
@@ -309,7 +383,7 @@ class SourceContract(unittest.TestCase):
                          {"broken anchor"})
         self.assertEqual(flaws({**files, process: files[process].replace("[目标](1.0_当前判断.md#checkpoint)", "无反向入口")}),
                          {"missing reciprocal route"})
-        self.assertEqual(flaws({**files, process: "# observation\n1. **目标：**[目标](1.0_当前判断.md#checkpoint)"}),
+        self.assertEqual(flaws({**files, process: "# observation\n1. **目标**：[目标](1.0_当前判断.md#checkpoint)"}),
                          {"missing evidence"})
 
     def test_validation_rejects_bad_metadata_and_link(self):
