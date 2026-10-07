@@ -53,7 +53,12 @@ def frontmatter(text):
         key, value = line.split(":", 1)
         if key in fields or not key or not value.strip():
             raise ValueError("Duplicate/empty metadata field: " + key)
-        fields[key] = value.strip()
+        value = value.strip()
+        # YAML plain scalars cannot contain a colon followed by whitespace.
+        # This guard is not a YAML parser; CI also parses the real frontmatter.
+        if not value.startswith(("\"", "'")) and re.search(r":(?:[ \t]|$)", value):
+            raise ValueError("Unquoted colon in YAML plain scalar: " + key)
+        fields[key] = value
     return fields
 
 
@@ -449,6 +454,15 @@ class SourceContract(unittest.TestCase):
                          {"missing reciprocal route"})
         self.assertEqual(flaws({**files, process: "# observation\n1. **目标**：[目标](1.0_当前判断.md#checkpoint)"}),
                          {"missing evidence"})
+
+    def test_frontmatter_rejects_yaml_plain_scalar_colon(self):
+        broken = "---\nname: pvnw\ndescription: first task: distinguish\n---\n"
+        quoted = '---\nname: pvnw\ndescription: "first task: distinguish"\n---\n'
+        with self.assertRaisesRegex(ValueError, "Unquoted colon"):
+            frontmatter(broken)
+        self.assertIn("task: distinguish", frontmatter(quoted)["description"])
+        # The published entry must satisfy the same invariant as the fixture.
+        frontmatter((BUNDLE / "SKILL.md").read_text(encoding="utf-8"))
 
     def test_validation_rejects_bad_metadata_and_link(self):
         with self.assertRaises(ValueError):

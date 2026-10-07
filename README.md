@@ -64,7 +64,7 @@ pvnw/                       # 独立仓库根
 python3 -m unittest discover -s tests -v
 ```
 
-本地和 CI 运行上述**静态仓库测试**：检查结构、链接、frontmatter、合成的目录／WBS 导航反例与安全边界，包括研究前计划、托管建 Vault 和逐包 Git 的**文字契约**。它不会调用模型，不测试宿主是否发现、每项任务是否启动、是否正确创建或迁移目录、Obsidian 渲染和是否恰当回答真实问题。可在隔离的合成目录按 [验收场景](pvnw/references/acceptance-cases.md) 进行**单独记录的人工宿主实测**；未执行不可宣称通过。可选地在**已有** `skills-ref` 的环境运行 `skills-ref validate ./pvnw` 核查官方格式；本项目不自动安装依赖，也不把外部工具通过当成行为验收。
+本地和 CI 运行上述**静态仓库测试**：检查结构、链接、frontmatter、合成的目录／WBS 导航反例与安全边界，包括研究前计划、托管建 Vault 和逐包 Git 的**文字契约**。CI 另使用 runner 自带的 Ruby Psych 解析实际 Skill YAML 元数据并拒绝未加引号的冒号反例；本机若有 Ruby 可同样手工运行解析检查，无需为 Skill 安装依赖。这些检查不会调用模型，不测试宿主是否发现、每项任务是否启动、是否正确创建或迁移目录、Obsidian 渲染和是否恰当回答真实问题。可在隔离的合成目录按 [验收场景](pvnw/references/acceptance-cases.md) 进行**单独记录的人工宿主实测**；未执行不可宣称通过。可选地在**已有** `skills-ref` 的环境运行 `skills-ref validate ./pvnw` 核查官方格式；本项目不自动安装依赖，也不把外部工具通过当成行为验收。
 
 版本用 [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html) 的 `v0.x.y` 起步；公开契约是技能入口、bundle 布局、必要引用和写入前安全判断，详见 [CHANGELOG.md](CHANGELOG.md)。本阶段不承诺任何目标客户端或跨会话退出机制兼容。协作方式见 [CONTRIBUTING.md](CONTRIBUTING.md)；开发代理的约定见 [AGENTS.md](AGENTS.md)。
 

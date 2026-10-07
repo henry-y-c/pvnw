@@ -1,6 +1,6 @@
 ---
 name: pvnw
-description: Progressive Vibe Notes Writing (PVNW), a project-management documentation skill. Host integration should invoke it before each visible task: distinguish directly answerable questions from reasoning-intensive work worth recording. With scoped authorization, locate or create an Obsidian-compatible Markdown vault, plan milestones and WBS, record execution as it happens, and consider a local Git checkpoint per completed package. No implicit file or Git permissions. 宿主须在任务前调用；逐任务判断，获权才建系、边做边记、按工作包检查提交。
+description: "Progressive Vibe Notes Writing (PVNW), a project-management documentation skill. Host integration should invoke it before each visible task: distinguish directly answerable questions from reasoning-intensive work worth recording. With scoped authorization, locate or create an Obsidian-compatible Markdown vault, plan milestones and WBS, record execution as it happens, and consider a local Git checkpoint per completed package. No implicit file or Git permissions. 宿主须在任务前调用；逐任务判断，获权才建系、边做边记、按工作包检查提交。"
 license: MIT
 ---
 

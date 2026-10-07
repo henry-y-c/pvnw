@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-07
+
 1. Shifted the entry decision toward reasoning-intensive questions: an authorized research task records a real question, testable first milestone, current WBS plan and unexecuted status before substantive research; safe observable actions then append to the same package and sync its summary. Directly answerable questions and explicit opt-outs may still leave no note. Existing identities and human-only freeze are unchanged.
 2. Added a scoped managed-workspace branch: if no suitable authorized vault exists and visible policy specifies one destination plus directory/file creation and later maintenance rights, create an Obsidian-compatible Markdown vault there without requiring Obsidian or `.obsidian`; otherwise keep the existing no-write/ask boundary and honor user-chosen ordinary Markdown directories.
 3. Clarified one Git checkpoint per verifiably delivered or blocked WBS package, not per research action, with existing Git, explicit local commit permission, staged-snapshot verification and no automatic git init/push; host pre-task activation still requires independent host implementation and runtime validation.
@@ -13,6 +15,14 @@
 6. Normalized Chinese bold-label punctuation outside emphasis across the portable bundle and added a source check for risky emphasis boundaries. New authorized notes should receive a Markdown check and, where possible, a target-reader spot check; existing user documents are not migrated.
 7. Clarified existing-work-package continuation: check newly verified evidence before classifying a question as throwaway; with explicit scoped continuing maintenance permission, append to the original process and sync the necessary summary even when the milestone conclusion is unchanged. One-time bootstrap permission does not imply continuing write access.
 8. Offline synthetic checks cover written commit gates, risky bold syntax and continuation boundaries, not real agent/host execution. Host installation, default activation, renderer behavior and real-task quality require separate observation; no such claims have been verified.
+
+### Fixed
+
+1. Quoted the colon-containing `description` YAML scalar in `SKILL.md`: previously valid-looking source failed actual YAML parsing and could be excluded from a host's skill catalog. The Python source test now rejects this unquoted-colon regression; CI parses actual metadata and the broken fixture with Ruby Psych, without changing bundle dependencies.
+
+### Verification
+
+1. Before release, 18 offline source-contract tests passed locally; Ruby Psych accepted the corrected frontmatter and rejected the unquoted-colon fixture; `git diff --check` passed. Remote CI for the release commit is a separate gate to check before tagging. Metadata parsing does not prove host discovery, automatic pre-task invocation or a real task result.
 
 ## [0.5.0] - 2026-10-07
 
@@ -85,7 +95,8 @@
 
 - Writing, inbox creation, Git commit and public distribution remain separately authorized operations; first-time unknown storage targets do not trigger automatic file creation.
 
-[Unreleased]: https://github.com/henry-y-c/pvnw/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/henry-y-c/pvnw/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.6.0
 [0.5.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.5.0
 [0.4.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.4.0
 [0.3.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.3.0

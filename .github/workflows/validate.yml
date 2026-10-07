@@ -13,5 +13,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Parse Skill YAML frontmatter with Psych
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+          source = File.read("pvnw/SKILL.md", encoding: "UTF-8")
+          front = source[/\A---\n(.*?)\n---\n/m, 1]
+          abort "Missing Skill frontmatter" unless front
+          metadata = YAML.safe_load(front)
+          abort "Invalid Skill metadata" unless metadata.is_a?(Hash) && metadata["name"] == "pvnw" && metadata["description"].is_a?(String)
+          begin
+            YAML.safe_load("description: first task: distinguish\n")
+            abort "Broken unquoted-colon fixture unexpectedly parsed"
+          rescue Psych::SyntaxError
+            puts "Valid Skill metadata; unquoted-colon fixture rejected"
+          end
+          RUBY
       - name: Check offline repository invariants
         run: python3 -m unittest discover -s tests -v
