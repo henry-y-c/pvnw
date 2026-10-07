@@ -45,6 +45,8 @@ def frontmatter(text):
 
 def local_links(source, text):
     """Resolve conventional Markdown links inside this repository."""
+    # Fenced synthetic examples are templates, not source-repository links.
+    text = re.sub(r"(?ms)^\s*```.*?^\s*```[^\n]*$", "", text)
     for target in LINK.findall(text):
         if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE) or target.startswith("#"):
             continue
@@ -116,7 +118,7 @@ class SourceContract(unittest.TestCase):
                 for level in ("微观", "中观", "宏观"):
                     self.assertIn(level, text)
         self.assertIn("不是每项任务强制创建三份文件", entry)
-        self.assertIn("每次过程篇变更", routes)
+        self.assertIn("每次工作包篇变更", routes)
         self.assertIn("进展或入口", routes)
         self.assertIn("状态／关系／导航实变", routes)
         self.assertIn("不强制先造 micro 文件", routes)
@@ -167,37 +169,41 @@ class SourceContract(unittest.TestCase):
         cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
         self.assertIn("project-system.md", entry)
         self.assertIn("有权者选定的唯一授权位置", entry)
-        self.assertIn("WBS 工作分解", entry)
+        self.assertIn("micro WBS 工作包", entry)
         for phrase in (
-            "0-项目总览.md", "N-0", "N-1", "N.W1", "N.W1.1", "N-WBS.md",
+            "0_<name>.md", "N_<dir name>/", "N.0_<name>.md", "N.1_<短名>.md",
             "未编号候选", "不回收", "已选普通 Markdown", "Unicode", "碰撞",
-            "旧→新映射", "工作项完成不等于节点判据通过", "每次过程篇更新",
-            "同一逻辑变更", "人", "逆操作", "拟提交快照",
+            "旧→新路径／ID 映射", "不能按数字批量替换", "工作包完成不等于节点通过",
+            "每次工作包篇更新", "同一逻辑变更", "逆操作", "拟提交快照",
+            "四空格", "单元格", "整个 Skill bundle",
         ):
             with self.subTest(policy=phrase):
                 self.assertIn(phrase, guide)
         self.assertIn("项目级目录／命名", routes)
-        for label in ("AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ"):
+        for label in ("AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL"):
             with self.subTest(scenario=label):
                 self.assertIn(f"| {label}.", cases)
         self.assertIn("from six to seven references", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
         self.assertIn("七份", (ROOT / "README.md").read_text(encoding="utf-8"))
 
     def test_synthetic_wbs_links_and_gates_reject_incomplete_snapshot(self):
-        """An in-memory project, not real files, agent output, or host execution."""
-        root = "0-项目总览.md"
-        summary = "1-恢复演练/1-0-当前判断.md"
-        process = "1-恢复演练/1-1-验证失败.md"
+        """In-memory new-model fixture; no agent/host runtime or filesystem writes."""
+        root = "0_项目总览.md"
+        summary = "1_恢复演练/1.0_当前判断.md"
+        first = "1_恢复演练/1.1_样本校验.md"
+        second = "1_恢复演练/1.2_隔离恢复.md"
         baseline = {
-            root: "# 项目\n[目标](1-恢复演练/1-0-当前判断.md)",
-            summary: "# 当前\n[项目](../0-项目总览.md)\n"
-                     "节点：隔离恢复可复现；判据：隔离演练成功；结果：未通过；人的冻结：无\n"
-                     "| ID | 交付物 | 依赖 | 状态 | 证据或缺口 |\n"
-                     "| --- | --- | --- | --- | --- |\n"
-                     "| 1.W1 | 样本校验 | 已获权样本 | 进行中 | [失败证据](1-1-验证失败.md) |\n"
-                     "| 1.W2 | 隔离恢复 | 1.W1 | 阻塞 | 缺：隔离观察 |",
-            process: "# 失败\n关联：1.W1、1.W2\n来源：合成演练\n观察：恢复失败\n"
-                     "[返回目标](1-0-当前判断.md)",
+            root: "# 项目\n1. **目标：**[恢复演练](1_恢复演练/1.0_当前判断.md)",
+            summary: "# 当前\n1. **根：**[项目](../0_项目总览.md)\n"
+                     "2. **节点：**隔离恢复可复现；判据：隔离演练成功；结果：未通过；人的冻结：无\n"
+                     "3. **工作包：**[1.1 样本校验](1.1_样本校验.md)，依赖已获权样本；"
+                     "[1.2 隔离恢复](1.2_隔离恢复.md)，依赖 1.1，缺：隔离观察",
+            first: "# 1.1 样本校验\n1. **目标：**校验样本；[返回目标](1.0_当前判断.md)\n"
+                   "    1. **来源：**合成演练 v1。\n    2. **计划：**比对校验和。\n"
+                   "    3. **观察：**校验失败。\n    4. **纠偏：**待复验。",
+            second: "# 1.2 隔离恢复\n1. **目标：**隔离恢复；依赖 1.1；"
+                    "[返回目标](1.0_当前判断.md)\n"
+                    "    1. **计划：**等待样本校验。\n    2. **未验证：**尚无隔离观察。",
         }
 
         def inspect(snapshot):
@@ -207,54 +213,72 @@ class SourceContract(unittest.TestCase):
                     path = posixpath.normpath(str(PurePosixPath(source).parent / target.split("#", 1)[0]))
                     if path not in snapshot:
                         problems.add("missing link")
-            rows = {}
-            if summary in snapshot:
-                for line in snapshot[summary].splitlines():
-                    if re.match(r"^\| 1\.W\d+ \|", line):
-                        cells = [cell.strip() for cell in line.strip("|").split("|")]
-                        if len(cells) == 5:
-                            rows[cells[0]] = cells[1:]
-            if set(rows) != {"1.W1", "1.W2"}:
+            if summary not in snapshot or not all(f"[{id_} " in snapshot[summary] for id_ in ("1.1", "1.2")):
                 problems.add("missing work items")
-            else:
-                if not all(rows[id_][0] and rows[id_][2] and rows[id_][3] for id_ in rows):
-                    problems.add("missing deliverable/status/evidence")
-                if rows["1.W2"][1] != "1.W1" or rows["1.W1"][1] != "已获权样本":
-                    problems.add("missing dependency")
-                if rows["1.W1"][3] != "[失败证据](1-1-验证失败.md)" or not rows["1.W2"][3].startswith("缺："):
-                    problems.add("missing evidence or explicit gap")
-            if process not in snapshot or not all(key in snapshot[process] for key in ("来源：", "观察：", "1.W1", "1.W2")):
-                problems.add("missing work evidence")
-            if summary in snapshot and "[失败证据](1-1-验证失败.md)" not in snapshot[summary]:
-                problems.add("missing forward route")
-            if process in snapshot and "[返回目标](1-0-当前判断.md)" not in snapshot[process]:
-                problems.add("missing return route")
+            for path, id_ in ((first, "1.1"), (second, "1.2")):
+                text = snapshot.get(path, "")
+                if not text.startswith(f"# {id_} ") or not all(
+                    re.search(r"^    \d+\. \*\*" + re.escape(field) + r"：", text, re.MULTILINE)
+                    for field in (("来源", "计划", "观察", "纠偏") if path == first else ("计划", "未验证"))
+                ):
+                    problems.add("missing ordered execution history")
+                if "[返回目标](1.0_当前判断.md)" not in text:
+                    problems.add("missing return route")
+            if summary in snapshot and "依赖 1.1，缺：隔离观察" not in snapshot[summary]:
+                problems.add("missing dependency or gap")
             if summary in snapshot and not all(
                 phrase in snapshot[summary]
-                for phrase in ("节点：隔离恢复可复现", "判据：隔离演练成功", "结果：未通过", "人的冻结：无")
+                for phrase in ("**节点：**隔离恢复可复现", "判据：隔离演练成功", "结果：未通过", "人的冻结：无")
             ):
                 problems.add("checkpoint conflated with task completion")
             return problems
 
         self.assertEqual(inspect(baseline), set())
         self.assertIn("missing link", inspect({root: baseline[root], summary: baseline[summary]}))
-        self.assertIn("missing work items", inspect({**baseline, summary: baseline[summary].replace("| 1.W2 |", "| work done |")}))
-        self.assertIn("missing dependency", inspect({**baseline, summary: baseline[summary].replace("隔离恢复 | 1.W1", "隔离恢复 | 未说明")}))
-        self.assertIn("missing deliverable/status/evidence", inspect({**baseline, summary: baseline[summary].replace("样本校验 | 已获权样本 | 进行中", " | 已获权样本 | 进行中")}))
-        self.assertIn("missing evidence or explicit gap", inspect({**baseline, summary: baseline[summary].replace("缺：隔离观察", "完成")}))
-        self.assertIn("missing work evidence", inspect({**baseline, process: baseline[process].replace("来源：合成演练", "无来源")}))
-        self.assertIn("missing return route", inspect({**baseline, process: baseline[process].replace("[返回目标](1-0-当前判断.md)", "无回链")}))
+        self.assertIn("missing work items", inspect({**baseline, summary: baseline[summary].replace("[1.2 ", "[X ")}))
+        self.assertIn("missing dependency or gap", inspect({**baseline, summary: baseline[summary].replace("缺：隔离观察", "完成")}))
+        self.assertIn("missing ordered execution history", inspect({**baseline, first: baseline[first].replace("    3. **观察：", "观察：")}))
+        self.assertIn("missing return route", inspect({**baseline, second: baseline[second].replace("[返回目标](1.0_当前判断.md)", "无回链")}))
         self.assertIn("checkpoint conflated with task completion", inspect({**baseline, summary: baseline[summary].replace("结果：未通过", "结果：任务完成即通过")}))
+
+    def test_skill_list_note_scope_and_migration_counterexamples(self):
+        """Written instructions and synthetic scenarios, not formatting/rendering proof."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        modeling = (BUNDLE / "references" / "note-modeling.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        for phrase in ("整个 Skill", "四空格", "同格", "1. …<br>2. …"):
+            self.assertIn(phrase, entry)
+        for phrase in ("全部 Skill Markdown", "每层四空格", "不默认放到表外", "视觉编号"):
+            self.assertIn(phrase, modeling)
+        for phrase in ("| AK.", "| AL.", "Tab 缩进", "批量改成 `N.1`"):
+            self.assertIn(phrase, cases)
+
+    def test_bundle_markdown_uses_list_note_mainline(self):
+        """Static syntax guard; not renderer, accessibility or agent-behavior proof."""
+        for path in [BUNDLE / "SKILL.md", *(BUNDLE / "references").glob("*.md")]:
+            text = path.read_text(encoding="utf-8")
+            if path.name == "SKILL.md":
+                text = text.split("---", 2)[-1]
+            in_code = False
+            for line in text.splitlines():
+                if line.lstrip().startswith("```"):
+                    in_code = not in_code
+                    continue
+                if in_code or not line.strip() or line.startswith(("#", "|", ">", "    ")):
+                    continue
+                with self.subTest(path=path.name, line=line[:50]):
+                    self.assertRegex(line, r"^\d+\. ", "Bundle prose must use ordered list notes")
+                self.assertNotIn("\t", line)
 
     def test_synthetic_navigation_rejects_incomplete_snapshots(self):
         """Pure in-memory fixture graph; not agent output, Git index or host behavior."""
-        overview = "0-项目总览.md"
-        summary = "1-恢复演练/1-0-当前判断.md"
-        process = "1-恢复演练/1-1-演练证据.md"
+        overview = "0_项目总览.md"
+        summary = "1_恢复演练/1.0_当前判断.md"
+        process = "1_恢复演练/1.1_隔离恢复.md"
         files = {
-            overview: "# project\n[当前目标](1-恢复演练/1-0-当前判断.md#checkpoint)",
-            summary: "# checkpoint\n[根](../0-项目总览.md#project) [演练](1-1-演练证据.md#observation)",
-            process: "# observation\n[目标](1-0-当前判断.md#checkpoint)\n来源：合成演练 v1\n观察：隔离恢复失败",
+            overview: "# project\n1. **目标：**[当前目标](1_恢复演练/1.0_当前判断.md#checkpoint)",
+            summary: "# checkpoint\n1. **根：**[根](../0_项目总览.md#project) [演练](1.1_隔离恢复.md#observation)",
+            process: "# observation\n1. **目标：**[目标](1.0_当前判断.md#checkpoint)\n来源：合成演练 v1\n观察：隔离恢复失败",
         }
 
         def flaws(snapshot):
@@ -283,9 +307,9 @@ class SourceContract(unittest.TestCase):
                          {"missing path", "missing reciprocal route", "missing evidence"})
         self.assertEqual(flaws({**files, summary: files[summary].replace("#observation", "#missing")}),
                          {"broken anchor"})
-        self.assertEqual(flaws({**files, process: files[process].replace("[目标](1-0-当前判断.md#checkpoint)", "无反向入口")}),
+        self.assertEqual(flaws({**files, process: files[process].replace("[目标](1.0_当前判断.md#checkpoint)", "无反向入口")}),
                          {"missing reciprocal route"})
-        self.assertEqual(flaws({**files, process: "# observation\n[目标](1-0-当前判断.md#checkpoint)"}),
+        self.assertEqual(flaws({**files, process: "# observation\n1. **目标：**[目标](1.0_当前判断.md#checkpoint)"}),
                          {"missing evidence"})
 
     def test_validation_rejects_bad_metadata_and_link(self):

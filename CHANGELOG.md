@@ -1,12 +1,23 @@
 # Changelog
 
-Changes to the portable PVNW Skill are documented here. Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). The public contract covers the `pvnw/` bundle layout, entry metadata, seven referenced decision/safety/project guides as of v0.4.0, and explicitly documented behavior and permission boundaries. It does **not** cover unspecified host auto-activation.
+1. **Scope:** the public contract covers the portable `pvnw/` bundle layout, entry metadata, seven on-demand guides, and documented behavior/permission boundaries—not unspecified host auto-activation.
+2. **Versioning:** format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Notes
+1. Host installation, default activation, renderer behavior and real-task quality require separate observation; no such claims have been verified.
 
-- Host installation, default activation and real-task answer quality require separate end-to-end observation; no compatibility claims have been verified.
+## [0.5.0] - 2026-10-07
+
+### Changed
+
+1. **New-project identities:** macro `0_<name>.md` → meso `N_<dir name>/N.0_<name>.md` → micro WBS package `N.1_<name>.md`, `N.2_<name>.md` etc. Each package is a file containing its whole evidence-backed execution process, not a `N.W1` planning row plus independent `N-1` issue note. Completing a package does not prove a milestone checkpoint.
+2. **Markdown writing:** the Skill entry and all seven references use ordered list-note bodies, four-space nested lists for one-dimensional reasoning, and local comparison tables only when multiple objects share stable fields; multiple points inside a cell receive visual `1. …<br>2. …` numbering. Rendering, accessibility, and semantic HTML behavior are not claimed verified.
+3. **Compatibility and safety:** prior v0.4.0 identities remain valid in existing projects; no automatic migration, filename rewrite or one-to-one numeric mapping. Existing project conventions, per-operation permission gates, human freeze and conditional micro→meso→macro sync remain. Synthetic AA–AL cases and offline tests cover new/old identity collisions and incomplete work-package histories; they do not prove agent behavior.
+
+### Verification
+
+1. Before release, 12 offline source-contract and in-memory fixture tests passed; source-link resolution and `git diff --check` passed. Staged-snapshot and publication/CI checks require separate verification of this version's exact commit SHA. `skills-ref` and host activation have not been verified.
 
 ## [0.4.0] - 2026-10-07
 
@@ -67,7 +78,8 @@ Changes to the portable PVNW Skill are documented here. Format inspired by [Keep
 
 - Writing, inbox creation, Git commit and public distribution remain separately authorized operations; first-time unknown storage targets do not trigger automatic file creation.
 
-[Unreleased]: https://github.com/henry-y-c/pvnw/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/henry-y-c/pvnw/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.5.0
 [0.4.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.4.0
 [0.3.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.3.0
 [0.2.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.2.0
