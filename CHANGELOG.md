@@ -5,8 +5,14 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-07
+
 1. Made the existing eight-step Skill procedure an explicit conditional Workflow: for work worth recording, locate the uniquely authorized vault or chosen Markdown directory and check directory/file scope before substantive research; ask for missing location or permission before that work, not after drafting an answer. Directly answerable tasks and explicit opt-outs do not prompt for a vault. Filesystem writability is not authorization; reuse an applicable authorized vault and create a compatible `.md` folder only at an approved unique location when none applies.
 2. Added synthetic timing/permission counterexamples and an offline written-contract test. Existing project structures need no migration; host installation, pre-task invocation and real note creation still require separate host integration and runtime validation. No Git, push, release or `.obsidian` permission follows from this update.
+
+### Verification
+
+1. Before publication, 19 offline source-contract tests passed locally; Ruby Psych parsed the actual Skill frontmatter, and changed-file Markdown links and Git diff whitespace checks passed. Remote CI for the exact release commit must pass before tagging; these checks do not establish host pre-task invocation, Obsidian rendering or real-task behavior.
 
 ## [0.6.0] - 2026-10-07
 
@@ -98,7 +104,8 @@
 
 - Writing, inbox creation, Git commit and public distribution remain separately authorized operations; first-time unknown storage targets do not trigger automatic file creation.
 
-[Unreleased]: https://github.com/henry-y-c/pvnw/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/henry-y-c/pvnw/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/henry-y-c/pvnw/releases/tag/v0.6.1
 [0.6.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.6.0
 [0.5.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.5.0
 [0.4.0]: https://github.com/henry-y-c/pvnw/releases/tag/v0.4.0
