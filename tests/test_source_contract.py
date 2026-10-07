@@ -140,7 +140,7 @@ class SourceContract(unittest.TestCase):
         routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
         permissions = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
         cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
-        for phrase in ("先核已有专题的增量", "里程碑状态未变", "持续维护权", "一次建系同意不自动延续"):
+        for phrase in ("先核已有专题", "里程碑结论", "持续维护或托管建系权", "一次建系同意不自动延续"):
             self.assertIn(phrase, entry)
         for phrase in ("助手在回答问题时自己验证", "状态不变也可有进展", "仅因提到专题名不造记录"):
             self.assertIn(phrase, gates)
@@ -166,6 +166,33 @@ class SourceContract(unittest.TestCase):
                          "answer only")
         self.assertEqual(expected_route(existing=True, new_evidence=True, standing_write=True, current_opt_out=True),
                          "answer only")
+
+    def test_managed_research_written_contract_not_host_activation(self):
+        """Assert policy wording and paper cases; never infer actual host dispatch."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        gates = (BUNDLE / "references" / "decision-gates.md").read_text(encoding="utf-8")
+        routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
+        project = (BUNDLE / "references" / "project-system.md").read_text(encoding="utf-8")
+        permissions = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        for phrase in ("原任务搜索／执行前", "需查证、比较、分解", "先建", "每个安全、可观察的步骤", "不默认创建 `.obsidian`", "不自动 git init"):
+            with self.subTest(entry=phrase):
+                self.assertIn(phrase, entry)
+        for phrase in ("可靠地直接回答", "需查证／比较／分解", "唯一建档位置", "无权时仍尽可能完成原题"):
+            with self.subTest(gates=phrase):
+                self.assertIn(phrase, gates)
+        for phrase in ("先建获权根→摘要→当前包篇", "已有获权 Vault 不另造", "不强制虚构 micro"):
+            with self.subTest(routes=phrase):
+                self.assertIn(phrase, routes)
+        for phrase in ("未执行", "每次搜索", "人确认启动"):
+            self.assertIn(phrase, project)
+        for phrase in ("托管策略", "不自动 git init", "不逐步／逐行提交", "工作包完成不等于节点通过"):
+            self.assertIn(phrase, permissions)
+        for label in ("AX", "AY", "AZ", "BA", "BB", "BC"):
+            with self.subTest(case=label):
+                self.assertIn(f"| {label}.", cases)
+        for negative in ("不自建默认 Vault", "不建 `.obsidian`", "不逐动作 commit", "摘要无权"):
+            self.assertIn(negative, cases)
 
     def test_static_safety_and_synthetic_cases(self):
         """Assertions on written policy/fixtures, NOT proof of model compliance."""
@@ -215,7 +242,7 @@ class SourceContract(unittest.TestCase):
         permission = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
         inbox = (BUNDLE / "references" / "safe-inbox.md").read_text(encoding="utf-8")
         cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
-        for phrase in ("建立或重组", "重构", "逐级", "不自动写", "人的冻结", "相对链接"):
+        for phrase in ("托管建系", "重构", "逐级", "不自动写", "人的冻结", "相对链接"):
             with self.subTest(entry=phrase):
                 self.assertIn(phrase, entry)
         for phrase in ("空白建系", "旧库重构", "先只读", "旧路径／入口→拟建", "回滚", "评估节点", "不自动冻结", "普通 Markdown", ".obsidian"):
@@ -259,6 +286,43 @@ class SourceContract(unittest.TestCase):
                 self.assertIn(f"| {label}.", cases)
         self.assertIn("from six to seven references", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
         self.assertIn("七份", (ROOT / "README.md").read_text(encoding="utf-8"))
+
+    def test_pre_research_plan_and_stepwise_history_fixture(self):
+        """An in-memory plan is valid before observations; a claimed result needs provenance."""
+        root = "0_研究.md"
+        summary = "1_核验/1.0_当前判断.md"
+        package = "1_核验/1.1_核验来源.md"
+        planned = {
+            root: "# 研究\n1. **目标**：[核验](1_核验/1.0_当前判断.md)",
+            summary: "# 当前判断\n1. **根**：[研究](../0_研究.md)\n"
+                     "2. **节点**：预期：来源可核查；实得：未验证；人的冻结：无\n"
+                     "3. **包**：[1.1 核验来源](1.1_核验来源.md)；进展：未执行",
+            package: "# 1.1 核验来源\n1. **目标**：核实来源；[返回摘要](1.0_当前判断.md)\n"
+                     "    1. **计划**：读取权威版本说明。\n    2. **状态**：未执行。",
+        }
+
+        def issues(snapshot, *, claims_result=False):
+            problems = set()
+            for source, text in snapshot.items():
+                for target in LINK.findall(text):
+                    resolved = posixpath.normpath(str(PurePosixPath(source).parent / target))
+                    if resolved not in snapshot:
+                        problems.add("broken link")
+            process = snapshot.get(package, "")
+            if not all(phrase in process for phrase in ("**目标**", "**计划**", "[返回摘要]")):
+                problems.add("empty plan")
+            if claims_result and not all(phrase in process for phrase in ("**动作**", "**来源**", "**观察**")):
+                problems.add("unsupported claim")
+            return problems
+
+        self.assertEqual(issues(planned), set())
+        self.assertIn("empty plan", issues({**planned, package: "# 1.1 核验来源"}))
+        self.assertIn("broken link", issues({root: planned[root], summary: planned[summary]}))
+        self.assertIn("unsupported claim", issues(planned, claims_result=True))
+        observed = {**planned, package: planned[package] +
+                    "\n    3. **动作**：读取合成来源 v1。\n    4. **来源**：合成来源 v1。"
+                    "\n    5. **观察**：发现其范围仅覆盖版本 A。"}
+        self.assertEqual(issues(observed, claims_result=True), set())
 
     def test_synthetic_wbs_links_and_gates_reject_incomplete_snapshot(self):
         """In-memory new-model fixture; no agent/host runtime or filesystem writes."""
