@@ -292,6 +292,28 @@ class SourceContract(unittest.TestCase):
         self.assertIn("from six to seven references", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
         self.assertIn("七份", (ROOT / "README.md").read_text(encoding="utf-8"))
 
+    def test_pre_task_vault_permission_workflow_written_contract(self):
+        """Ordering and synthetic written cases; NOT host invocation or permission proof."""
+        entry = (BUNDLE / "SKILL.md").read_text(encoding="utf-8")
+        gates = (BUNDLE / "references" / "decision-gates.md").read_text(encoding="utf-8")
+        routes = (BUNDLE / "references" / "routes-and-lifecycle.md").read_text(encoding="utf-8")
+        permissions = (BUNDLE / "references" / "provenance-and-permissions.md").read_text(encoding="utf-8")
+        cases = (BUNDLE / "references" / "acceptance-cases.md").read_text(encoding="utf-8")
+        headings = ("**先辨认出口与思考强度**", "**尊重退出**", "**先核已有专题", "**托管建系与 Vault**", "**最后回到出口**")
+        self.assertEqual(list(map(entry.index, headings)), sorted(map(entry.index, headings)))
+        for phrase in ("## Workflow", "每项任务判断，不是每项任务建 Vault", "文件系统可写不等于有权写",
+                       "在主体工作前", "待确认后再做主体工作", "不为建档索权", "已有获权 Vault 不另造"):
+            with self.subTest(entry=phrase):
+                self.assertIn(phrase, entry)
+        self.assertIn("在主体研究／执行前请有权者确认目录与授权", gates)
+        self.assertIn("不等研究答案完成后才问", routes)
+        self.assertIn("路径可写", permissions)
+        for label in ("BD", "BE", "BF", "BG"):
+            with self.subTest(case=label):
+                self.assertIn(f"| {label}.", cases)
+        self.assertIn("不能先写完比较再问位置", cases)
+        self.assertIn("目录可写本身不能替代策略", cases)
+
     def test_pre_research_plan_and_stepwise_history_fixture(self):
         """An in-memory plan is valid before observations; a claimed result needs provenance."""
         root = "0_研究.md"

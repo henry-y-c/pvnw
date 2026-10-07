@@ -5,6 +5,9 @@
 
 ## [Unreleased]
 
+1. Made the existing eight-step Skill procedure an explicit conditional Workflow: for work worth recording, locate the uniquely authorized vault or chosen Markdown directory and check directory/file scope before substantive research; ask for missing location or permission before that work, not after drafting an answer. Directly answerable tasks and explicit opt-outs do not prompt for a vault. Filesystem writability is not authorization; reuse an applicable authorized vault and create a compatible `.md` folder only at an approved unique location when none applies.
+2. Added synthetic timing/permission counterexamples and an offline written-contract test. Existing project structures need no migration; host installation, pre-task invocation and real note creation still require separate host integration and runtime validation. No Git, push, release or `.obsidian` permission follows from this update.
+
 ## [0.6.0] - 2026-10-07
 
 1. Shifted the entry decision toward reasoning-intensive questions: an authorized research task records a real question, testable first milestone, current WBS plan and unexecuted status before substantive research; safe observable actions then append to the same package and sync its summary. Directly answerable questions and explicit opt-outs may still leave no note. Existing identities and human-only freeze are unchanged.
